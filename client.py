@@ -22,4 +22,5 @@ print("This is the message: " + message)
 clientSocket.sendto(message.encode(), (SERVER_IP, SERVER_PORT))
 
 # LISTENING FOR RESPONSE
-message, _ = socket.recvfrom(4096)
+message, _ = clientSocket.recvfrom(4096)
+print(message)

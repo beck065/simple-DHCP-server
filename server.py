@@ -19,7 +19,7 @@ class Records:
 
     # searches records for an entry with the given mac address
     def searchMac(self, mac_address):
-        for record in records:
+        for record in self.__records:
             if record.mac == mac_address:
                 return record
         return None
@@ -32,7 +32,7 @@ class Records:
     # finds the first expired record
     # if none are expired, returns None
     def firstExpired(self):
-        for record in records:
+        for record in self.__records:
             if record.isExpired:
                 return record
         return None
@@ -64,7 +64,7 @@ class Record:
 
     # for use in ACK and OFFER messages
     def formatted(self):
-        return self.mac + " " + self.ip + " " + self.timestamp
+        return self.mac + " " + self.ip + " " + self.timestamp.isoformat()
 
     # for use in LIST
     def string(self):
@@ -93,54 +93,74 @@ def dhcp_operation(parsed_message):
     request = parsed_message[0]
     print(request)
     if request == "LIST":
-        print("This is a LIST message")
+        print("Received a LIST message")
     elif request == "DISCOVER":
-        print("This is a DISCOVER message")
+        print("Received a DISCOVER message")
         # search records for MAC
+        print("Searching for record: " + parsed_message[1])
         record = records.searchMac(parsed_message[1])
         if record != None:
             # mac address has a record in records
             # check if timestamp is valid
+            print("Found record for " + record.formatted())
             if record.isExpired():
                 # record is expired
                 # send OFFER message to client
+                print("Record expired..")
                 record.updateTimestamp()
                 record.acked = False
-                return "OFFER " + record.formatted()
+                message = "OFFER " + record.formatted()
+                print("Sending " + message + " message")
+                return message
             else:
                 # record is not expired
                 # send ACK message
+                print("Record not expired..")
                 record.acked = True
-                return "ACKNOWLEDGE " + record.formatted()
+                message = "ACKNOWLEDGE " + record.formatted()
+                print("Sending " + message + " message")
+                return message
         else:
             # no record found for mac address
+            print("No record found..")
             # check if records is full
             if records.isFull():
                 # list of records is full
+                print("List of records is full..")
                 # check if any records are expired
                 expired_record = records.firstExpired()
                 if expired_record != None:
                     # found an expired record
+                    print("Found expired record " + expired_record.formatted() + " updating MAC address to " + parsed_message[1])
                     # update mac and send offer
                     expired_record.updateMac(parsed_message[1])
-                    return "OFFER " + expired_record.formatted()
+                    message = "OFFER " + expired_record.formatted()
+                    print("Sending " + message)
+                    return message
                 else:
                     # no expired records
+                    print("No expired records..")
                     # send DECLINED message
-                    return "DECLINED"
+                    message = "DECLINED"
+                    print("Sending " + message)
+                    return message
             else:
                 # list of records is not full
+                print("List of records not full..")
                 # create a new record for the mac address
+                print("Creating a new record for " + parsed_message[1])
                 new_record = records.createRecord(parsed_message[1])
                 # send OFFER message
-                return "OFFER " + new_record.formatted()
+                message = "OFFER " + new_record.formatted()
+                print("Sending " + message)
+                return message
 
     elif request == "REQUEST":
-        print("This is a REQUEST message")
+        print("Received a REQUEST message")
     elif request == "RELEASE":
-        print("This is a RELEASE message")
+        print("Received a RELEASE message")
     elif request == "RENEW":
-        print("This is a RENEW message")
+        print("Received a RENEW message")
 
 
 # Start a UDP server
