@@ -55,7 +55,7 @@ class Record:
         self.acked = False
 
     def isExpired(self):
-        if self.timestamp <= datetime.fromisoformat(datetime.now().isoformat()):
+        if self.timestamp < datetime.fromisoformat(datetime.now().isoformat()):
             return True
         return False
 
@@ -154,13 +154,86 @@ def dhcp_operation(parsed_message):
                 message = "OFFER " + new_record.formatted()
                 print("Sending " + message)
                 return message
-
     elif request == "REQUEST":
         print("Received a REQUEST message")
+        record = records.searchMac(parsed_message[1])
+        msgip = parsed_message[2]
+        if record != None:
+            if record.ip == msgip:
+                if record.isExpired():
+                    print("Record expired..")
+                    message = "DECLINE " + record.formatted()
+                    print("Sending " + message)
+                    return message
+                else:
+                    print("Record not expired..")
+                    record.acked = True
+                    message = "ACKNOWLEDGE " + record.formatted()
+                    print("Sending " + message)
+                    return message  
+            else:
+                print("IP does not match record..")
+                message = "DECLINE " + record.formatted()
+                print("Sending " + message)
+                return message
+        else:
+            # no record found for mac address
+            print("No record found..")
+            message = "DECLINE " + record.formatted()
+            print("Sending " + message)
+            return message
     elif request == "RELEASE":
         print("Received a RELEASE message")
+        record = records.searchMac(parsed_message[1])
+        if record != None:
+            record.timestamp = datetime.fromisoformat(datetime.now().isoformat())
+            record.acked = False
+            print("Releasing " + record.mac + " for IP " + record.ip)
+        return None
     elif request == "RENEW":
         print("Received a RENEW message")
+        record = records.searchMac(parsed_message[1])
+        if record != None:
+            print("Renewing timestamp for " + record.mac)
+            record.updateTimestamp()
+            record.acked = True
+            msg = "ACKNOWLEDGE " + record.formatted()
+            print("Sending " + msg)
+            return msg
+        else:
+            # no record found for mac address
+            print("No record found..")
+            # check if records is full
+            if records.isFull():
+                # list of records is full
+                print("List of records is full..")
+                # check if any records are expired
+                expired_record = records.firstExpired()
+                if expired_record != None:
+                    # found an expired record
+                    print("Found expired record " + expired_record.formatted() + " updating MAC address to " + parsed_message[1])
+                    # update mac and send offer
+                    expired_record.updateMac(parsed_message[1])
+                    message = "OFFER " + expired_record.formatted()
+                    print("Sending " + message)
+                    return message
+                else:
+                    # no expired records
+                    print("No expired records..")
+                    # send DECLINED message
+                    message = "DECLINED"
+                    print("Sending " + message)
+                    return message
+            else:
+                # list of records is not full
+                print("List of records not full..")
+                # create a new record for the mac address
+                print("Creating a new record for " + parsed_message[1])
+                new_record = records.createRecord(parsed_message[1])
+                # send OFFER message
+                message = "OFFER " + new_record.formatted()
+                print("Sending " + message)
+                return message
 
 
 # Start a UDP server
@@ -173,12 +246,12 @@ print("DHCP Server running...")
 try:
     while True:
         message, clientAddress = server.recvfrom(4096)
-
         parsed_message = parse_message(message.decode())
 
         response = dhcp_operation(parsed_message)
 
-        server.sendto(response.encode(), clientAddress)
+        if response != None:
+            server.sendto(response.encode(), clientAddress)
 except OSError:
     pass
 except KeyboardInterrupt:
