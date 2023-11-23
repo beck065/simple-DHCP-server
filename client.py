@@ -49,8 +49,9 @@ def displayMenu():
     option = input()
     if (option == "1"):
         release_msg = "RELEASE " + MAC + " " + msg[2] + " " + msg[3]
-        print("This is the RELEASE message: " + renew_msg)
+        print("This is the RELEASE message: " + release_msg)
         clientSocket.sendto(release_msg.encode(), (SERVER_IP, SERVER_PORT))
+        displayMenu()
     elif (option == "2"):
         renew_msg = "RENEW " + MAC + " " + msg[2] + " " + msg[3]
         print("This is the RENEW message: " + renew_msg)
