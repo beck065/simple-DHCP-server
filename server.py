@@ -55,7 +55,7 @@ class Record:
         self.acked = False
 
     def isExpired(self):
-        if self.timestamp < datetime.fromisoformat(datetime.now().isoformat()):
+        if self.timestamp <= datetime.fromisoformat(datetime.now().isoformat()):
             return True
         return False
 
