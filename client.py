@@ -25,7 +25,6 @@ clientSocket.sendto(message.encode(), (SERVER_IP, SERVER_PORT))
 # Parse the client messages
 def parse_message(message):
     parsed_message = message.split()
-    print("client: " + parsed_message)
     return parsed_message
 
 # checks if a timestamp is expired
@@ -53,9 +52,19 @@ def displayMenu():
         clientSocket.sendto(release_msg.encode(), (SERVER_IP, SERVER_PORT))
         displayMenu()
     elif (option == "2"):
-        renew_msg = "RENEW " + MAC + " " + msg[2] + " " + msg[3]
-        print("client: This is the RENEW message: " + renew_msg)
-        clientSocket.sendto(renew_msg.encode(), (SERVER_IP, SERVER_PORT))
+        # checks if the record is expired
+        if (isExpired(msg[3])):
+            # record is expired, sending discover message
+            print("client: Expired..")
+            discover_msg = "DISCOVER " + MAC
+            print("client: This is the DISCOVER message: " + discover_msg)
+            clientSocket.sendto(discover_msg.encode(), (SERVER_IP, SERVER_PORT))
+        else:
+            # record is not expired, sending renew message
+            print("client: Not expired..")
+            renew_msg = "RENEW " + MAC + " " + msg[2] + " " + msg[3]
+            print("client: This is the RENEW message: " + renew_msg)
+            clientSocket.sendto(renew_msg.encode(), (SERVER_IP, SERVER_PORT))
     elif (option == "3"):
         print("client: Now terminating...")
         sys.exit()

@@ -11,6 +11,6 @@ message = "LIST"
 
 adminSocket.sendto(message.encode(), (SERVER_IP, SERVER_PORT))
 
-message, addr = adminSocket.recvfrom(4096)
+message, _ = adminSocket.recvfrom(4096)
 
 print(message.decode())

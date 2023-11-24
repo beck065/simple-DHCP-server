@@ -14,7 +14,7 @@ ip_addresses = [ip.exploded for ip in IPv4Interface("192.168.45.0/28").network.h
 # records class
 class Records:
     def __init__(self):
-        self.__max_records = 20
+        self.__max_records = 14
         self.__records = []
 
     # searches records for an entry with the given mac address
@@ -33,7 +33,7 @@ class Records:
     # if none are expired, returns None
     def firstExpired(self):
         for record in self.__records:
-            if record.isExpired:
+            if record.isExpired():
                 return record
         return None
 
@@ -45,10 +45,12 @@ class Records:
             return new_record
         return None
     
-    def __str__(self) -> str:
+    def createList(self):
         list = ""
         for record in self.__records:
-            list += str(record)
+            # only returns non-expired records
+            if record.isExpired() == False:
+                list = list + "[" + record.formatted() + "]\n"
         return list
 
 # record class
@@ -72,10 +74,6 @@ class Record:
     def formatted(self):
         return self.mac + " " + self.ip + " " + self.timestamp.isoformat()
 
-    # for use in LIST
-    def __str__(self) -> str:
-        return self.mac + " " + self.ip + " " + self.timestamp.isoformat()
-
     # updates the record with a new mac
     # also sets ack to false
     # and updates the timestamp
@@ -90,7 +88,6 @@ records = Records()
 # Parse the client messages
 def parse_message(message):
     parsed_message = message.split()
-    print("server: " + parsed_message)
     return parsed_message
 
 
@@ -100,7 +97,7 @@ def dhcp_operation(parsed_message):
     print("server: " + request)
     if request == "LIST":
         print("server: Received a LIST message")
-        return str(records)
+        return records.createList()
     elif request == "DISCOVER":
         print("server: Received a DISCOVER message")
         # search records for MAC
@@ -147,8 +144,8 @@ def dhcp_operation(parsed_message):
                 else:
                     # no expired records
                     print("server: No expired records..")
-                    # send DECLINED message
-                    message = "DECLINED"
+                    # send DECLINE message
+                    message = "DECLINE"
                     print("server: Sending " + message)
                     return message
             else:
@@ -193,9 +190,15 @@ def dhcp_operation(parsed_message):
         print("server: Received a RELEASE message")
         record = records.searchMac(parsed_message[1])
         if record != None:
-            record.timestamp = datetime.fromisoformat(datetime.now().isoformat())
-            record.acked = False
-            print("server: Releasing " + record.mac + " for IP " + record.ip)
+            # see if record is expired
+            if record.isExpired() == False:
+                # record is not expired, release as normal
+                record.timestamp = datetime.fromisoformat(datetime.now().isoformat())
+                record.acked = False
+                print("server: Releasing " + record.mac + " for IP " + record.ip)
+            else:
+                # record is expired, do not need to release
+                print("server: Already released")
         return None
     elif request == "RENEW":
         print("server: Received a RENEW message")
@@ -227,8 +230,8 @@ def dhcp_operation(parsed_message):
                 else:
                     # no expired records
                     print("server: No expired records..")
-                    # send DECLINED message
-                    message = "DECLINED"
+                    # send DECLINE message
+                    message = "DECLINE"
                     print("server: Sending " + message)
                     return message
             else:
