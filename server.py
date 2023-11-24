@@ -44,6 +44,12 @@ class Records:
             self.__records.append(new_record)
             return new_record
         return None
+    
+    def __str__(self) -> str:
+        list = ""
+        for record in self.__records:
+            list += str(record)
+        return list
 
 # record class
 class Record:
@@ -67,8 +73,8 @@ class Record:
         return self.mac + " " + self.ip + " " + self.timestamp.isoformat()
 
     # for use in LIST
-    def string(self):
-        return None
+    def __str__(self) -> str:
+        return self.mac + " " + self.ip + " " + self.timestamp.isoformat()
 
     # updates the record with a new mac
     # also sets ack to false
@@ -94,6 +100,7 @@ def dhcp_operation(parsed_message):
     print(request)
     if request == "LIST":
         print("Received a LIST message")
+        return str(records)
     elif request == "DISCOVER":
         print("Received a DISCOVER message")
         # search records for MAC
